@@ -1,0 +1,38 @@
+## **NHIỆM VỤ CHÍNH:**
+1. **Tối ưu hóa phân loại** giữa frequent trials (thử nghiệm thường xuyên) và target trials 
+(thử nghiệm mục tiêu)
+2. Sử dụng **thiết kế cân bằng**: cùng số lượng target trials và frequent trials
+
+## **NHIỆM VỤ NÂNG CAO (Extra Credit):**
+- Kiểm tra giá trị gia tăng của việc sử dụng **HMM timeseries** (Hidden Markov Model time series) 
+làm đầu vào cho bộ phân loại
+
+## **CÔNG CỤ YÊU CẦU:**
+- Viết code bằng **Python**
+- Sử dụng **MNE Python**: https://mne.tools/stable/index.html
+- Sử dụng **OSL-ephys**: https://osl-ephys.readthedocs.io/en/latest/
+- Sử dụng **OSL-dynamics**: https://osl-dynamics.readthedocs.io/en/latest/ 
+(cho phần extra credit)
+
+## **KHUYẾN NGHỊ:**
+- Tải dữ liệu **oddball EEG** cho **ít nhất 5 đối tượng (subjects)**
+- Tải OSL-ephys và OSL-dynamics, cài đặt trong **virtual environment** trên hệ thống 
+**Linux (hoặc Mac)** / máy ảo
+
+## **BÁO CÁO YÊU CẦU:**
+Báo cáo phải:
+- Viết bằng **tiếng Anh**
+- **Liệt kê đóng góp của từng thành viên nhóm**, ví dụ các vai trò:
+  - **Signal Preprocessing Lead**: Xử lý lọc tín hiệu, loại bỏ nhiễu (ví dụ: chớp mắt)
+  - **Feature Extraction Lead**: Trích xuất đặc trưng như band power, entropy, hoặc wavelet 
+  coefficients
+  - **Machine Learning Lead**: Xây dựng bộ phân loại (ví dụ: SVM, Random Forest, hoặc mạng 
+  neural đơn giản)
+  - **Visualization Lead**: Tạo biểu đồ tín hiệu EEG, phân phối đặc trưng, và kết quả phân loại
+  - **Documentation Lead**: Chuẩn bị báo cáo cuối cùng và bài thuyết trình
+  - **Project Manager**: Điều phối công việc, đảm bảo deadline, và tích hợp công 
+  việc của mọi người
+
+Đây là một bài tập nhóm về xử lý tín hiệu EEG và machine learning, tập trung vào bài 
+toán phân loại trong paradigm oddball (phân biệt giữa kích thích thường xuyên và kích 
+thích hiếm/mục tiêu).
