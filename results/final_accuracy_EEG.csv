@@ -1,0 +1,6 @@
+Subject,SVM_Accuracy,SVM_Status,RF_Accuracy,RF_Status
+sub-01,0.875,Success,0.875,Success
+sub-02,0.7,Success,0.5,Success
+sub-03,0.6897,Success,0.6092,Success
+sub-04,1.0,Success,1.0,Success
+sub-05,0.8987,Success,0.9241,Success
