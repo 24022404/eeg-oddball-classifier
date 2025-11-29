@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import warnings
 import mne
-from mne.preprocessing import Xdawn
 from sklearn.preprocessing import StandardScaler
+from mne.preprocessing import Xdawn
 
 try:
     from osl_dynamics.models.hmm import Config, Model
@@ -13,44 +13,56 @@ try:
     OSL_AVAILABLE = True
 except ImportError:
     OSL_AVAILABLE = False
-    print("Warning: osl-dynamics not found.")
+    print("⚠️ CẢNH BÁO: Chưa cài đặt 'osl-dynamics'.")
 
 warnings.filterwarnings("ignore")
 
-INPUT_EPOCHS_PATH = "../processed/processed_data.pkl"
-INPUT_RAW_DIR     = "../processed/raw_filtered" 
-OUTPUT_CLASSICAL  = "../processed/optimal_xdawn_dataset.csv"
-OUTPUT_HMM        = "../processed/osl_raw_continuous_features.csv"
+INPUT_PATH = "/kaggle/input/data-processing/processed/processed_data.pkl"
+INPUT_RAW_DIR = "/kaggle/input/data-processing/processed/raw_filtered" 
 
-P300_WIN_TMIN = 0.25  
-P300_WIN_TMAX = 0.60  
+OUT_CLASSICAL = "./eeg.csv"
+OUT_HMM       = "./hmm.csv"
 
-N_XDAWN_COMPS = 3     
+ROI_CHANNELS = ['Pz', 'Cz', 'CPz', 'P3', 'P4', 'Fz', 'C3', 'C4']
 
 HMM_STATES     = 6    
-HMM_LAGE       = 5    
-HMM_SEQ_LEN    = 100  
-HMM_BATCH_SIZE = 32   
-HMM_EPOCHS     = 30   
+HMM_LAGS       = 5    
+HMM_PCA_COMPS  = 12   
+HMM_SEQ_LEN    = 32   
+HMM_BATCH_SIZE = 16   
+HMM_EPOCHS     = 10  
+N_XDAWN_COMPS = 3
+P300_WIN_TMIN = 0.25  
+P300_WIN_TMAX = 0.60 
 
 def load_data(path):
     if not os.path.exists(path):
-        alts = [
-            "../processed/processed_data.pkl",
-            "./processed/processed_data.pkl",
-        ]
+        alts = ["../processed/processed_data.pkl", "./processed/processed_data.pkl"]
         for alt in alts:
             if os.path.exists(alt):
+                print(f"⚠️ Dùng đường dẫn dự phòng: {alt}")
                 return load_data(alt)
-        raise FileNotFoundError(f"File not found: {path}")
+        raise FileNotFoundError(f"❌ Không tìm thấy file: {path}")
     
-    print(f"Loading data from: {path}")
+    print(f"📂 Loading data: {path}")
     with open(path, 'rb') as f:
         return pickle.load(f)
 
+def find_raw_file(subject_id, search_dir):
+    candidates = [
+        f"{subject_id}_raw_filtered.fif",
+        f"{subject_id}_raw_filtered"
+    ]
+    if not os.path.exists(search_dir): return None
+    
+    for fname in candidates:
+        full_path = os.path.join(search_dir, fname)
+        if os.path.exists(full_path): return full_path
+    return None
+
 def sanitize_data(data):
-    if np.isnan(data).any() or np.isinf(data).any():
-        data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0)
+    if np.isnan(data).any():
+        data = np.nan_to_num(data, nan=0.0)
     
     std_val = np.std(data, axis=0)
     mean_val = np.mean(data, axis=0)
@@ -59,114 +71,86 @@ def sanitize_data(data):
     limit = 20 * std_val
     return np.clip(data, mean_val - limit, mean_val + limit)
 
-def find_raw_file(subject_id, search_dir):
-    candidates = [
-        f"{subject_id}_raw_filtered.fif",
-        f"{subject_id}_raw_filtered"
-    ]
-    if os.path.exists(search_dir):
-        for fname in candidates:
-            fpath = os.path.join(search_dir, fname)
-            if os.path.exists(fpath): return fpath
-            
-    kaggle_path = "/kaggle/input/data-processing/processed/raw_filtered"
-    if os.path.exists(kaggle_path):
-        for fname in candidates:
-            fpath = os.path.join(kaggle_path, fname)
-            if os.path.exists(fpath): return fpath
-            
-    return None
 
-def extract_classical_features(all_subjects):
-    print("-" * 60)
-    print("PART 1: CLASSICAL FEATURE EXTRACTION")
-    print("-" * 60)
-
+def extract_classical(all_subjects):
+    print(f"\n{'='*50}")
+    print(f"💎 CLASSICAL FEATURE EXTRACTION (ROI-BASED)")
+    print(f"{'='*50}")
+    
     final_data = []
-
+    
     for subj_id, epochs in all_subjects.items():
-        n_targets = np.sum(epochs.events[:, 2] == 6)
-        if n_targets < 5:
+        if np.sum(epochs.events[:, 2] == 6) < 3:
+            print(f"⚠️ Bỏ qua {subj_id} (Dữ liệu < 3 targets)")
             continue
             
-        print(f"Processing {subj_id}...")
+        print(f"Processing: {subj_id}...")
         
-        epochs_work = epochs.copy()
-        epochs_work.pick_types(eeg=True, verbose=False)
-        epochs_work.crop(tmin=0.2, tmax=0.7)
+        picks = [ch for ch in ROI_CHANNELS if ch in epochs.ch_names]
+        if not picks: picks = epochs.ch_names[:5] 
         
-        try:
-            xdawn = Xdawn(n_components=N_XDAWN_COMPS, correct_overlap=False)
-            xdawn.fit(epochs_work)
-            epochs_denoised = xdawn.apply(epochs_work)['Stimulus/S  5', 'Stimulus/S  6']
-        except Exception:
-            continue
-            
-        X = epochs_denoised.get_data()
-        y = epochs_denoised.events[:, 2]
-        times = epochs_denoised.times
+        ep_crop = epochs.copy().pick(picks).crop(P300_WIN_TMIN, P300_WIN_TMAX) 
         
-        t_idx_start = np.abs(times - P300_WIN_TMIN).argmin()
-        t_idx_end = np.abs(times - P300_WIN_TMAX).argmin()
+        X = ep_crop.get_data() 
+        y = ep_crop.events[:, 2]
+        times = ep_crop.times
         
         for i in range(len(X)):
-            label = 1 if y[i] == 6 else 0
+            label = 1 if y[i] == 6 else 0 if y[i] == 5 else -1
+            if label == -1: continue
             
             row = {'subject_id': subj_id, 'epoch_idx': i, 'label': label}
             
-            for c in range(N_XDAWN_COMPS):
-                signal = X[i, c, t_idx_start:t_idx_end]
-                
-                row[f'Comp{c}_Mean'] = np.mean(signal)
-                row[f'Comp{c}_Max']  = np.max(signal)
-                row[f'Comp{c}_Eng']  = np.sum(signal ** 2)
-                
-                peak_ix = np.argmax(signal)
-                row[f'Comp{c}_Lat']  = times[t_idx_start + peak_ix]
+            roi_mean = np.mean(X[i]) 
+            row['ROI_Mean_Amp'] = roi_mean
+            target_ch = 'Pz' if 'Pz' in picks else picks[0]
+            ch_idx = picks.index(target_ch)
+            signal = X[i, ch_idx, :]
+            
+            row['Peak_Amp'] = np.max(signal)
+            row['Peak_Latency'] = times[np.argmax(signal)]
+            row['Peak_to_Peak'] = np.ptp(signal)
             
             final_data.append(row)
             
     if final_data:
         df = pd.DataFrame(final_data)
-        df.to_csv(OUTPUT_CLASSICAL, index=False)
-        print(f"Saved Classical features: {OUTPUT_CLASSICAL} | Shape: {df.shape}")
+        df.to_csv(OUT_CLASSICAL, index=False)
+        print(f"✅ ĐÃ LƯU: {OUT_CLASSICAL} | Shape: {df.shape}")
     else:
-        print("Failed to extract classical features.")
+        print("❌ Lỗi: Không tạo được eeg.csv")
 
 def extract_hmm_features(all_subjects):
-    print("-" * 60)
-    print("PART 2: CONTINUOUS HMM EXTRACTION")
-    print("-" * 60)
+    print(f"\n{'='*60}")
+    print(f"HMM ADVANCED (RAW CONTINUOUS DATA)")
+    print(f"{'='*60}")
     
-    if not OSL_AVAILABLE:
-        print("OSL Dynamics not available.")
-        return
+    if not OSL_AVAILABLE: return
 
     continuous_data_list = []
     subject_meta = []
 
-    print("Step 1: Preparing Data...")
+    print(f"[1/3] Chuẩn bị dữ liệu Raw & Giảm chiều thủ công...")
     
     for subj_id, epochs_ref in all_subjects.items():
-        n_targets = np.sum(epochs_ref.events[:, 2] == 6)
-        if n_targets < 5: continue
-        
+        if np.sum(epochs_ref.events[:, 2] == 6) < 3: continue
+            
+        # Tìm file Raw
         raw_path = find_raw_file(subj_id, INPUT_RAW_DIR)
         if not raw_path:
+            print(f"⚠️ Bỏ qua {subj_id}: Không tìm thấy file Raw.")
             continue
             
-        print(f"Processing {subj_id}...")
+        print(f"HMM: Xử lý {subj_id}...", end=" ")
         
         try:
             try:
                 raw = mne.io.read_raw_fif(raw_path, preload=True, verbose='error')
             except:
                 raw = mne.io.read_raw_fif(raw_path + ".fif", preload=True, verbose='error')
-        except Exception:
-            continue
-
+        except:
+            print("Lỗi đọc file."); continue
         raw.pick_types(eeg=True)
-        
         if raw.info['sfreq'] > 100: raw.resample(100, verbose=False)
         if epochs_ref.info['sfreq'] > 100: 
             epochs_ref = epochs_ref.copy().resample(100, verbose=False)
@@ -174,12 +158,21 @@ def extract_hmm_features(all_subjects):
         try:
             xdawn = Xdawn(n_components=N_XDAWN_COMPS, correct_overlap=False)
             xdawn.fit(epochs_ref)
-            raw_denoised = xdawn.apply(raw)['Stimulus/S  6']
-        except Exception:
-            continue
+            
+            all_filters = xdawn.filters_['Stimulus/S  6']
+            best_filters = all_filters[:N_XDAWN_COMPS, :]
+            
+            raw_data = raw.get_data()
+            projected_data = np.dot(best_filters, raw_data)
+            
+            print(f"Done. Shape: {projected_data.shape}")
+            
+        except Exception as e:
+            print(f"Lỗi Projection: {e}"); continue
 
-        data_cont = raw_denoised.get_data().T.astype(np.float32)
+        data_cont = projected_data.T.astype(np.float32)
         data_clean = sanitize_data(data_cont)
+        
         continuous_data_list.append(data_clean)
         
         subject_meta.append({
@@ -189,16 +182,16 @@ def extract_hmm_features(all_subjects):
         })
 
     if not continuous_data_list:
-        print("No raw data processed.")
-        return
+        print("❌ Không có dữ liệu Raw nào hợp lệ."); return
 
-    print("Step 2: Training HMM...")
-    
+    print(f"\n[2/3] Huấn luyện HMM (OSL-Dynamics)...")
+
     training_data = Data(continuous_data_list)
-    training_data.tde(n_embeddings=HMM_LAGE)
+    
+    training_data.tde(n_embeddings=HMM_LAGS)
     training_data.standardize()
     
-    print(f"Input channels: {training_data.n_channels}")
+    print(f"Input Channels cho HMM: {training_data.n_channels}")
 
     config = Config(
         n_states=HMM_STATES,
@@ -207,18 +200,18 @@ def extract_hmm_features(all_subjects):
         learn_means=True,
         learn_covariances=True,
         batch_size=HMM_BATCH_SIZE,
-        learning_rate=0.005, 
+        learning_rate=0.005,
         n_epochs=HMM_EPOCHS
     )
     
     model = Model(config)
     model.fit(training_data)
     
-    print("Step 3: Extracting Features...")
+    print(f"\n[3/3] Trích xuất Fractional Occupancy...")
     
     alphas = model.get_alpha(training_data)
     final_feats = []
-    t_offset = HMM_LAGE // 2
+    t_offset = HMM_LAGS // 2
     
     for idx, alpha_cont in enumerate(alphas):
         meta = subject_meta[idx]
@@ -227,15 +220,14 @@ def extract_hmm_features(all_subjects):
         
         win_start = int(P300_WIN_TMIN * sfreq)
         win_end = int(P300_WIN_TMAX * sfreq)
-        
+
         for i in range(len(events)):
-            evt_time = events[i, 0] 
+            evt_time = events[i, 0]
             code = events[i, 2]
             
             if code == 6: label = 1
             elif code == 5: label = 0
             else: continue
-            
             start_idx = evt_time + win_start - t_offset
             end_idx = evt_time + win_end - t_offset
             
@@ -247,29 +239,26 @@ def extract_hmm_features(all_subjects):
             fo = np.mean(alpha_window, axis=0)
             
             row = {'subject_id': meta['sid'], 'epoch_idx': i, 'label': label}
-            for s in range(HMM_STATES):
-                row[f'State_{s}_FO'] = fo[s]
+            for s in range(HMM_STATES): row[f'State_{s}_FO'] = fo[s]
                 
             final_feats.append(row)
         
     if final_feats:
         df = pd.DataFrame(final_feats).fillna(0)
-        df.to_csv(OUTPUT_HMM, index=False)
-        print(f"Saved HMM features: {OUTPUT_HMM} | Shape: {df.shape}")
+        df.to_csv(OUT_HMM, index=False)
+        print(f"✅ Đã lưu file HMM: {OUT_HMM} | Shape: {df.shape}")
+        
+        print("\n🔍 Khác biệt State (Target vs Standard):")
         print(df.groupby('label').mean(numeric_only=True))
     else:
-        print("Failed to extract HMM features.")
+        print("❌ Thất bại phần HMM.")
 
 if __name__ == "__main__":
+    print(f"🚀 BẮT ĐẦU TRÍCH XUẤT DỮ LIỆU...")
     try:
-        data = load_data(INPUT_EPOCHS_PATH)
+        data = load_data(INPUT_PATH)
+        extract_classical(data)
+        extract_hmm_features(data)
+        print(f"\n🎉 HOÀN TẤT!")
     except Exception as e:
-        print(e)
-        exit()
-        
-    extract_classical_features(data)
-    extract_hmm_features(data)
-    
-    print("-" * 60)
-    print("DONE")
-    print("-" * 60)
+        print(f"\n❌ LỖI NGHIÊM TRỌNG: {e}")
