@@ -162,6 +162,12 @@ run_all_subjects(subject_list, save_raw=True)
 - **Nhóm 4**: Huấn luyện & Đánh giá
 - **Nhóm 5**: Trực quan hóa
 
+## 📄 Báo cáo
+
+**📝 Technical Report (LaTeX)**: [View on Overleaf](https://www.overleaf.com/project/6934c066d10f4dd7b24edbb5)
+
+Báo cáo chi tiết về phương pháp, kết quả và phân tích được viết bằng LaTeX và có thể xem/chỉnh sửa trên Overleaf.
+
 ## 📚 Tài liệu tham khảo
 
 - [MNE-Python Documentation](https://mne.tools/stable/index.html)
@@ -189,4 +195,4 @@ Mọi đóng góp đều được chào đón! Vui lòng:
 
 ---
 
-**Last updated**: November 2025
+**Last updated**: December 2025
