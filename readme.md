@@ -164,7 +164,7 @@ run_all_subjects(subject_list, save_raw=True)
 
 ## 📄 Báo cáo
 
-**📝 Technical Report (LaTeX)**: [View on Overleaf]([https://www.overleaf.com/project/6934c066d10f4dd7b24edbb5](https://www.overleaf.com/9331923581dhbrqjjmbywn#3c46f1))
+**📝 Technical Report (LaTeX)**: [View on Overleaf](https://www.overleaf.com/9331923581dhbrqjjmbywn#3c46f1)
 
 Báo cáo chi tiết về phương pháp, kết quả và phân tích được viết bằng LaTeX và có thể xem/chỉnh sửa trên Overleaf.
 
