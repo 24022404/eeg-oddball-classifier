@@ -8,7 +8,6 @@ Project này thực hiện tiền xử lý và phân tích dữ liệu EEG từ 
 
 - **Standard stimuli (S 5)**: Kích thích thường gặp
 - **Target stimuli (S 6)**: Kích thích hiếm (deviant)
-- **Novel stimuli (S 7)**: Kích thích mới lạ
 
 ## 🎯 Mục tiêu
 
@@ -28,10 +27,6 @@ eeg-oddball-classifier/
 ├── processed/                  # Dữ liệu đã xử lý (không upload lên git)
 │   ├── processed_data.pkl     # Epochs data
 │   └── raw_filtered/          # Raw filtered data cho HMM
-├── notebooks/                  # Jupyter notebooks
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_preprocessing.ipynb
-│   └── 03_feature_extraction.ipynb
 ├── src/                        # Source code
 │   ├── __init__.py
 │   ├── preprocessing.py       # Tiền xử lý
