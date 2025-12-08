@@ -1,5 +1,5 @@
 Approach,Features,Best Model,F1,Accuracy
-Pooled SMOTE,EEG,RandomForest,0.7987,0.7912
+Pooled SMOTE,EEG,LightGBM,0.8115,0.8013
 Pooled SMOTE,HMM,RandomForest,0.8837,0.8822
 Per-Subject SMOTE,EEG,SVM,0.8160,0.7980
-Per-Subject SMOTE,HMM,RandomForest,0.8571,0.8586
+Per-Subject SMOTE,HMM,LightGBM,0.8859,0.8855
