@@ -37,8 +37,8 @@ pip install -r requirements.txt
 ├── src/             # Source code
 │   ├── preprocessing.py
 │   ├── feature_extraction.py
-│   ├── visualization.ipynb
-│   └── model.ipynb
+│   ├── model.ipynb
+│   └── visualization.ipynb
 └── README.md
 ```
 
