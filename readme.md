@@ -45,14 +45,10 @@ pip install -r requirements.txt
 ## 📊 Results
 
 **Approach 1: Pooled SMOTE**
-- EEG: 82% accuracy (Random Forest)
-- HMM: 90% accuracy (Neural Network)
-- HMM improvement: +9.8%
+
 
 **Approach 2: Per-Subject SMOTE**
-- EEG: 84% accuracy (Random Forest)
-- HMM: 91% accuracy (Neural Network)
-- HMM improvement: +8.3%
+
 
 ## 🔗 Links
 
