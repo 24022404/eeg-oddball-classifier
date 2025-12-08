@@ -33,6 +33,9 @@ python src/feature_extraction.py
 
 # Train models
 jupyter notebook src/model.ipynb
+
+# Visualize
+jupyter notebook src/visualize.ipynb
 ```
 
 ## Project Structure
