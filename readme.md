@@ -18,7 +18,7 @@ Classification task:
 - **Frequent (S5)**: Standard stimuli (~80%)
 - **Target (S6)**: Deviant stimuli (~10%)
 
-Dataset: 4 subjects, 127 EEG channels, 1000 Hz, 847 trials (imbalance ratio 7.1:1)
+Dataset: 5 subjects, 127 EEG channels, 1000 Hz, 847 trials (imbalance ratio 7.1:1)
 
 ## Quick Start
 
